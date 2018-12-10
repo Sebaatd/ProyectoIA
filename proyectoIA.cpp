@@ -91,77 +91,105 @@ void lecturaInput(int &cant_autos, int &cant_opciones, int &cant_clases, vector<
 	
 }
 
-void ForwardChecking(int nivel, vector<int> solucion, int cant_clases, vector<vector<int>> dominios, vector<int> autos_por_clase){
-	int clase_instanciada;
-	vector<int> clases_disponibles(cant_clases), autos_disponibles_por_clase = autos_por_clase;
-	vector<vector<int>> dominios_filtrados = dominios;
-
-	iota(clases_disponibles.begin(), clases_disponibles.end(), 0);
-
-	if(clases_disponibles.size() != 0){
-		clase_instanciada = clases_disponibles[0];
-		solucion[nivel] = clase_instanciada;
-
-
-		clases_disponibles.erase(clases_disponibles.begin()); //OJO QUE SE BORRA SIEMPRE LA PRIMERA
-		dominios_filtrados.erase(dominios_filtrados.begin()+nivel);
-
-		for(size_t i = 0; i < dominios_filtrados.size(); i++){
-			//ELIMINAR TODOS LOS VALORES INCONSISTENTES
-
+void imprimirDominio(vector<vector<int>> &dominio){
+	for(size_t i = 0; i < dominio.size(); i++){
+		cout << "D" << i << ": ";
+		for(size_t j = 0; j < dominio[i].size(); j++){
+			cout << dominio[i][j] << " ";
 		}
-
-
+		cout << endl;
 	}
 }
 
-void FC(int nivel, int cant_clases, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios){
-	
-	//Seleccionar X_i
-	for(int i = 0; i < cant_clases; i++){
-
-		//Instanciar X_i
-		if(autos_por_clase[i] != 0){
-			solucion[nivel] = i;
-			autos_por_clase[i]--;
-			//dominios.erase(dominios.begin()+i);
-
-			//Razonar hacia adelante (forward-check)
-			for(size_t j = 0; j < dominios.size(); j++){
-
-				for(size_t k = 0; k < dominios[j].size(); k++){
-					if(dominios[j][k] == i && autos_por_clase[i] == 0){
-						dominios[j][k] = -1;
-					}
-					cout << dominios[j][k];
-				}
-				cout << endl;
-				
-			}
-			cout << endl;
-		}
-
-		break;
+void imprimirSolucion(vector<int> &solucion){
+	for(size_t i = 0; i < solucion.size(); i++){
+		cout << solucion[i];
 	}
-
-
+	cout << endl;
 }
 
-int tresFC(int nivel, vector<int> &solucion){
-	if(nivel == 9){
+int existeVacio(vector<vector<int>> dominios){
+	int vacio = 0;
+	for(size_t i = 0; i < dominios.size(); i++){
+		if(dominios[i].empty()){
+			vacio = 1;
+		}
+	}
+	return vacio;
+}
+
+int filtrarDominio(vector<int> &dominio, vector<int> autos_por_clase, int valor){
+	if(dominio.empty()){
 		return 1;
 	}
-	
 
+	auto it = dominio.begin();
+	while(it != dominio.end()){
+		if(*it == valor && autos_por_clase[valor] == 0){
+			it = dominio.erase(it);
+		}
+		else{
+			++it;
+		}
+	}
+	return 0;
 }
 
 
-vector<int> tercerFC(vector<int> solucion){
-	vector<int> secuencia_final = solucion;
-	int i = tresFC(0, secuencia_final);
-	return secuencia_final;
-}
+void FC(int nivel, int cant_clases, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios){
+	size_t cont = 0;
+	vector<int> clases_disponibles, autos_por_clase_aux;
+	vector<vector<int>> dominios_aux;
 
+	clases_disponibles = dominios[0];
+
+	//1. Seleccionar X_i.
+	for (vector<int>::iterator it = clases_disponibles.begin() ; it != clases_disponibles.end(); ++it){
+		autos_por_clase_aux = autos_por_clase;
+		dominios_aux = dominios;
+		dominios_aux.erase(dominios_aux.begin());
+		cont++;
+
+		//2. Instanciar X_i <- a_i: a_i existe en D_i -- D_i: Dominio de i.
+		if(autos_por_clase_aux[*it] > 0){
+			solucion[nivel] = *it;
+			autos_por_clase_aux[*it] -= 1;
+
+			//3. Razonar hacia adelante (forward-check).
+			//Eliminar de los dominios de las variables no instanciadas, aquellos valores inconsistentes con respecto a la instanciación, de acuerdo al conjunto de restricciones.
+			for(size_t j = 0; j < dominios_aux.size(); j++){
+				filtrarDominio(dominios_aux[j], autos_por_clase_aux, *it);				
+			}
+
+			//4. Si quedan valores posibles en los dominios de todas las variables por instanciar, entonces:
+			if(existeVacio(dominios_aux) == 0){
+				//4.1. Si i < n, incrementar i, e ir al paso (1).
+				if(nivel < 9){
+					FC(nivel+1, cant_clases, autos_por_clase_aux, solucion, dominios_aux);
+				}
+				//4.2. Si i = n, salir con la solución.
+				else{
+					imprimirSolucion(solucion);
+				}
+			}
+
+			//5. Si existe una variable por instanciar, sin valores posibles en su dominio, entonces retractar los efectos de la instanciación.
+			else{
+				//Si quedan valores por intentar en el dominio actual, volver al paso (2) (volver a instanciar).
+				//Si no quedan valores:
+				if(cont == clases_disponibles.size()){
+					//Si i = 1, salir sin solución
+					if(nivel == 1){
+						cout << "No existe solución" << endl;
+					}
+					//Si i > 1, decrementar i y volver al paso (2).
+				}
+			}
+
+		}
+	}
+
+}
 
 int main(){
 	/*
@@ -182,42 +210,6 @@ int main(){
 	vector<vector<int>> opciones_por_clase, dominios;
 
 	lecturaInput(cant_autos, cant_opciones, cant_clases, maxCantAutosBloq, tamBloq, autos_por_clase, opciones_por_clase, dominios, solucion);
-
-	//ForwardChecking(0, solucion, cant_clases, dominios, autos_por_clase);
-	FC(0, cant_clases, autos_por_clase, solucion, dominios);
-
-
-	/* REVISION INPUT
-	cout << cant_autos << " " << cant_opciones << " " << cant_clases << endl;
-	for(size_t i = 0; i < maxCantAutosBloq.size(); i++){
-		cout << maxCantAutosBloq[i] << " ";
-	}
-	cout << endl;
-
-	for(size_t i = 0; i < tamBloq.size(); i++){
-		cout << tamBloq[i] << " ";
-	}
-	cout << endl;
-
-	for(size_t i = 0; i < opciones_por_clase.size(); i++){
-		cout << i << " " << autos_por_clase[i] << " ";
-		for(size_t j = 0; j < opciones_por_clase[i].size(); j++){
-			cout << opciones_por_clase[i][j] << " ";
-		}
-		cout << endl;
-	}
-	cout << endl;
-	*/
-
-	/*
-	for(int i = 0; i < cant_autos; i++){
-		cout << "Posición " << i << ": ";
-		for(int j = 0; j < cant_clases; j++){
-			cout << dominios[i][j] << " ";
-		}
-		cout << endl;
-	}
-	*/
-	
+	FC(0, cant_clases, autos_por_clase, solucion, dominios);	
 
 }
