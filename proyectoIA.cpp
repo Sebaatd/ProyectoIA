@@ -6,7 +6,8 @@
 using namespace std;
 
 void lecturaInput(int &cant_autos, int &cant_opciones, int &cant_clases, vector<int> &maxCantAutosBloq, 
-	vector<int> &tamBloq, vector<int> &autos_por_clase, vector<vector<int>> &opciones_por_clase, vector<vector<int>> &dominios, vector<int> &solucion){
+	vector<int> &tamBloq, vector<int> &autos_por_clase, vector<vector<int>> &opciones_por_clase, vector<vector<int>> &dominios, 
+	vector<int> &solucion, vector<vector<int>> &matriz_asociacion){
 
 	string line;
 	int cont = 0;
@@ -88,7 +89,16 @@ void lecturaInput(int &cant_autos, int &cant_opciones, int &cant_clases, vector<
 
 		cont++;
     }
-	
+
+    /*
+    vector<int> binario;
+
+    for(size_t i = 0; i < cant_clases; i++){
+    	for(size_t j = 0; j < cant_opciones; j++){
+
+    	}
+    }
+	*/
 }
 
 void imprimirDominio(vector<vector<int>> &dominio){
@@ -101,9 +111,16 @@ void imprimirDominio(vector<vector<int>> &dominio){
 	}
 }
 
-void imprimirSolucion(vector<int> &solucion){
+void imprimirSolucion(vector<int> &solucion, vector<vector<int>> opciones_por_clase, int cant_opciones){
+	
 	for(size_t i = 0; i < solucion.size(); i++){
-		cout << solucion[i];
+		cout << solucion[i] << "  ";
+		
+		for(size_t j = 0; j < cant_opciones; j++){
+			cout << opciones_por_clase[solucion[i]][j] << " ";
+		}
+		cout << endl;	
+
 	}
 	cout << endl;
 }
@@ -135,8 +152,66 @@ int filtrarDominio(vector<int> &dominio, vector<int> autos_por_clase, int valor)
 	return 0;
 }
 
+int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<int> &solucion, vector<vector<int>> opciones_por_clase){
+	int clase, cont, cont_aux, violacion;
+	vector<vector<int>> opciones_por_secuencia;
 
-void FC(int nivel, int cant_clases, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios){
+	for(size_t i = 0; i < solucion.size(); i++){
+		clase = solucion[i];
+		opciones_por_secuencia.push_back(opciones_por_clase[clase]);
+	}
+
+	cont = 0;
+	cont_aux = 0;
+	violacion = 0;
+	/*
+	for(int i = 0; i < cant_opciones; i++){
+		for(size_t j = 0; j < solucion.size(); j++){
+			if(cont < tamBloq[i]){
+				if(opciones_por_secuencia[j][i] == 1){
+					cont_aux++;
+				}
+				cont++;
+			}
+			else{
+				if(cont_aux > maxCantAutosBloq[i]){
+					violacion = 1;
+				}
+				j--;
+				cont = 0;
+				cont_aux = 0;
+			}
+		}
+	}
+	*/
+	size_t j = 0;
+	int tamano_bloque;
+	for(int i = 0; i < cant_opciones; i++){
+		j = 0;
+		tamano_bloque = tamBloq[i];
+		while(j < solucion.size()){
+			cont = 0;
+			if(j + tamano_bloque <= solucion.size()){
+				for(int k = 0; k < tamano_bloque; k++){
+					if(opciones_por_secuencia[j+k][i] == 1){
+						cont++;
+					}
+				}
+
+				if(cont > maxCantAutosBloq[i]){
+					return 1;
+
+				}
+			}
+			j++;
+		}
+	}
+	return 0;
+}
+
+
+void FC(int nivel, int cant_clases, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios, int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq,
+		vector<vector<int>> opciones_por_clase, int cant_autos){
 	size_t cont = 0;
 	vector<int> clases_disponibles, autos_por_clase_aux;
 	vector<vector<int>> dominios_aux;
@@ -165,11 +240,14 @@ void FC(int nivel, int cant_clases, vector<int> autos_por_clase, vector<int> &so
 			if(existeVacio(dominios_aux) == 0){
 				//4.1. Si i < n, incrementar i, e ir al paso (1).
 				if(nivel < 9){
-					FC(nivel+1, cant_clases, autos_por_clase_aux, solucion, dominios_aux);
+					FC(nivel+1, cant_clases, autos_por_clase_aux, solucion, dominios_aux, cant_opciones, tamBloq, maxCantAutosBloq, opciones_por_clase, cant_autos);
 				}
 				//4.2. Si i = n, salir con la solución.
 				else{
-					imprimirSolucion(solucion);
+					//imprimirSolucion(solucion, opciones_por_clase, cant_opciones);
+					if(excedeMaximo(cant_opciones, tamBloq, maxCantAutosBloq, solucion, opciones_por_clase) != 1){
+						imprimirSolucion(solucion, opciones_por_clase, cant_opciones);
+					}
 				}
 			}
 
@@ -207,9 +285,10 @@ int main(){
 
 	int cant_autos, cant_opciones, cant_clases;
 	vector<int> maxCantAutosBloq, tamBloq, autos_por_clase, solucion;
-	vector<vector<int>> opciones_por_clase, dominios;
+	vector<vector<int>> opciones_por_clase, dominios, matriz_asociacion;
 
-	lecturaInput(cant_autos, cant_opciones, cant_clases, maxCantAutosBloq, tamBloq, autos_por_clase, opciones_por_clase, dominios, solucion);
-	FC(0, cant_clases, autos_por_clase, solucion, dominios);	
+	lecturaInput(cant_autos, cant_opciones, cant_clases, maxCantAutosBloq, 
+		tamBloq, autos_por_clase, opciones_por_clase, dominios, solucion, matriz_asociacion);
+	FC(0, cant_clases, autos_por_clase, solucion, dominios, cant_opciones, tamBloq, maxCantAutosBloq, opciones_por_clase, cant_autos);	
 
 }
