@@ -7,7 +7,7 @@ using namespace std;
 
 void lecturaInput(int &cant_autos, int &cant_opciones, int &cant_clases, vector<int> &maxCantAutosBloq, 
 	vector<int> &tamBloq, vector<int> &autos_por_clase, vector<vector<int>> &opciones_por_clase, vector<vector<int>> &dominios, 
-	vector<int> &solucion, vector<vector<int>> &matriz_asociacion){
+	vector<int> &solucion, vector<int> &matriz_conflictos){
 
 	string line;
 	int cont = 0;
@@ -35,6 +35,7 @@ void lecturaInput(int &cant_autos, int &cant_opciones, int &cant_clases, vector<
 	        for(int i = 0; i < cant_autos; i++){
     			dominios.push_back(clases);
     			solucion.push_back(-1);
+    			matriz_conflictos.push_back(-1);
     		}
 
 		}
@@ -67,7 +68,7 @@ void lecturaInput(int &cant_autos, int &cant_opciones, int &cant_clases, vector<
 			result.clear();
 		}
 
-		//Resto de las líneas: Obtención del número de autos en cada clase y las opciones que utiliza
+		//Resto de las líneas: Obtención del número de autos en cada clase y las opciones que utiliza.
 		else{
 			istringstream iss(line);
 
@@ -105,13 +106,12 @@ void imprimirSolucion(vector<int> &solucion, vector<vector<int>> opciones_por_cl
 }
 
 int existeVacio(vector<vector<int>> dominios){
-	int vacio = 0;
 	for(size_t i = 0; i < dominios.size(); i++){
 		if(dominios[i].empty()){
-			vacio = 1;
+			return 1;
 		}
 	}
-	return vacio;
+	return 0;
 }
 
 int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<int> solucion, vector<vector<int>> opciones_por_clase){
@@ -149,9 +149,28 @@ int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAuto
 	return 0;
 }
 
-int filtrarDominio(int nivel, vector<int> &dominio, vector<int> autos_por_clase, int valor, vector<int> &solucion, int cant_opciones, 
-	vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<vector<int>> opciones_por_clase){
-	
+int DescartarDemandas(int nivel, int pos, vector<int> &dominio, vector<int> autos_por_clase, int valor, vector<int> &matriz_conflictos){
+	if(dominio.empty()){
+		return 1;
+	}
+
+	auto it = dominio.begin();
+	while(it != dominio.end()){
+		if(*it == valor && autos_por_clase[valor] == 0){
+			it = dominio.erase(it);
+			//matriz_conflictos[nivel+pos] = nivel;
+		}
+
+		else{
+			++it;
+		}
+	}
+	return 0;
+}
+
+int DescartarExcesos(int nivel, int pos, vector<int> &dominio, vector<int> &solucion, int cant_opciones, 
+	vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<vector<int>> opciones_por_clase, vector<int> &matriz_conflictos){
+
 	if(dominio.empty()){
 		return 1;
 	}
@@ -164,45 +183,32 @@ int filtrarDominio(int nivel, vector<int> &dominio, vector<int> autos_por_clase,
 
 	auto it = dominio.begin();
 	while(it != dominio.end()){
-		if(*it == valor && autos_por_clase[valor] == 0){
+		solucion_temporal.push_back(*it);
+		if(excedeMaximo(cant_opciones, tamBloq, maxCantAutosBloq, solucion_temporal, opciones_por_clase) == 1){
 			it = dominio.erase(it);
+			matriz_conflictos[nivel+pos] = nivel;
 		}
-
 		else{
-			solucion_temporal.push_back(*it);
-			if(excedeMaximo(cant_opciones, tamBloq, maxCantAutosBloq, solucion_temporal, opciones_por_clase) == 1){
-				it = dominio.erase(it);
-			}
-			else{
-				++it;
-			}
-			solucion_temporal.erase(solucion_temporal.end()-1);	
+			++it;
 		}
+		solucion_temporal.erase(solucion_temporal.end()-1);	
 	}
 	return 0;
 }
 
-void prepararDominio(int nivel, vector<vector<int>> &dominio_original, vector<vector<int>> &dominio_dinamico){
-	dominio_dinamico = dominio_original;
-	
-	if(nivel != 0){
-		for(int i = 0; i <= nivel; i++){
-			dominio_dinamico.erase(dominio_dinamico.begin()+i);
-		}	
-	}
-
-}
-
-void FC(int nivel, int cant_clases, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> &dominios, int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq,
-		vector<vector<int>> opciones_por_clase, int cant_autos, vector<vector<int>> &dominio_dinamico){
+void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios, int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq,
+		vector<vector<int>> opciones_por_clase, int cant_autos, vector<int> &matriz_conflictos, int &retorno){
 
 	size_t cont = 0;
 	vector<int> clases_disponibles, autos_por_clase_aux;
-	clases_disponibles = dominio_dinamico[0];
+	vector<vector<int>> respaldo;
+	clases_disponibles = dominios[0];
+	
 	//1. Seleccionar X_i.
-	for (vector<int>::iterator it = clases_disponibles.begin() ; it != clases_disponibles.end(); ++it){
+	for (vector<int>::iterator it = clases_disponibles.begin(); it != clases_disponibles.end(); ++it){
 		autos_por_clase_aux = autos_por_clase;
-		prepararDominio(nivel, dominios, dominio_dinamico);
+		respaldo = dominios;
+		respaldo.erase(respaldo.begin());	
 		cont++;
 
 		//2. Instanciar X_i <- a_i: a_i existe en D_i -- D_i: Dominio de i.
@@ -212,17 +218,27 @@ void FC(int nivel, int cant_clases, vector<int> autos_por_clase, vector<int> &so
 
 			//3. Razonar hacia adelante (forward-check).
 			//Eliminar de los dominios de las variables no instanciadas, aquellos valores inconsistentes con respecto a la instanciación, de acuerdo al conjunto de restricciones.
-			for(size_t j = 0; j < dominio_dinamico.size(); j++){
-				filtrarDominio(nivel, dominio_dinamico[j], autos_por_clase_aux, *it, solucion, cant_opciones, tamBloq, maxCantAutosBloq, opciones_por_clase);				
+			//Eliminar autos sin demanda de los dominios.
+			for(size_t j = 0; j < respaldo.size(); j++){
+				DescartarDemandas(nivel, j+1, respaldo[j], autos_por_clase_aux, *it, matriz_conflictos);				
 			}
+			//Eliminar autos que infringen restricción de máximo por bloque de los dominios.
+			DescartarExcesos(nivel, 1, respaldo[0], solucion, cant_opciones, tamBloq, maxCantAutosBloq, opciones_por_clase, matriz_conflictos);
 
 			//4. Si quedan valores posibles en los dominios de todas las variables por instanciar, entonces:
-			if(existeVacio(dominio_dinamico) == 0){
+			if(existeVacio(respaldo) == 0){
 				//4.1. Si i < n, incrementar i, e ir al paso (1).
 				if(nivel < cant_autos-1){
-					FC(nivel+1, cant_clases, autos_por_clase_aux, solucion, dominios, cant_opciones, 
-						tamBloq, maxCantAutosBloq, opciones_por_clase, cant_autos, dominio_dinamico);
-
+					FC(nivel+1, autos_por_clase_aux, solucion, respaldo, cant_opciones, 
+						tamBloq, maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, retorno);
+					
+					if(retorno != -1 && retorno != nivel){
+						break;
+					}
+					else if(retorno == nivel){
+						retorno = -1;
+					}
+					
 				}
 				//4.2. Si i = n, salir con la solución.
 				else{
@@ -239,12 +255,17 @@ void FC(int nivel, int cant_clases, vector<int> autos_por_clase, vector<int> &so
 					if(nivel == 1){
 						cout << "No existe solución" << endl;
 					}
+					//Fallo
+					else{
+						retorno = matriz_conflictos[nivel];
+					}
 					//Si i > 1, decrementar i y volver al paso (2).
 				}
 			}
 		}
 	}
 }
+
 
 int main(){
 	/*
@@ -261,15 +282,16 @@ int main(){
 	*/
 
 	int cant_autos, cant_opciones, cant_clases;
-	vector<int> maxCantAutosBloq, tamBloq, autos_por_clase, solucion;
-	vector<vector<int>> opciones_por_clase, dominios, matriz_asociacion;
-	vector<vector<int>> dominio_dinamico;
+	vector<int> maxCantAutosBloq, tamBloq, autos_por_clase, solucion, matriz_conflictos;
+	vector<vector<int>> opciones_por_clase, dominios;
+
+	int retorno = -1;
 
 	lecturaInput(cant_autos, cant_opciones, cant_clases, maxCantAutosBloq, 
-		tamBloq, autos_por_clase, opciones_por_clase, dominios, solucion, matriz_asociacion);
+		tamBloq, autos_por_clase, opciones_por_clase, dominios, solucion, matriz_conflictos);
 
-	dominio_dinamico = dominios;
-	FC(0, cant_clases, autos_por_clase, solucion, dominios, cant_opciones, tamBloq, 
-		maxCantAutosBloq, opciones_por_clase, cant_autos, dominio_dinamico);	
+
+	FC(0, autos_por_clase, solucion, dominios, cant_opciones, tamBloq, 
+		maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, retorno);	
 
 }
