@@ -1,11 +1,6 @@
-#include<bits/stdc++.h>
-#include <string>
-#include <sstream>
-#include <vector>
+#include "funciones.h"
 
-using namespace std;
-
-void lecturaInput(int &cant_autos, int &cant_opciones, int &cant_clases, vector<int> &maxCantAutosBloq, 
+void lecturaInput(string path, int &cant_autos, int &cant_opciones, int &cant_clases, vector<int> &maxCantAutosBloq, 
 	vector<int> &tamBloq, vector<int> &autos_por_clase, vector<vector<int>> &opciones_por_clase, vector<vector<int>> &dominios, 
 	vector<int> &solucion, vector<int> &matriz_conflictos){
 
@@ -14,7 +9,9 @@ void lecturaInput(int &cant_autos, int &cant_opciones, int &cant_clases, vector<
 	vector<string> result;
 	vector<int> opciones, clases;
 
-	while (getline(cin, line)){
+	ifstream myfile(path.c_str());
+
+	while (getline(myfile, line)){
 		//Primera línea: Obtención de cantidades de: autos, opciones y clases.
 		if(cont == 0){
 			istringstream iss(line);
@@ -91,18 +88,23 @@ void lecturaInput(int &cant_autos, int &cant_opciones, int &cant_clases, vector<
 		cont++;
     }
 
+    myfile.close();
 }
 
-void imprimirSolucion(vector<int> &solucion, vector<vector<int>> opciones_por_clase, int cant_opciones){
-	
+void imprimirSolucion(vector<int> &solucion, vector<vector<int>> opciones_por_clase, int cant_opciones, ofstream &myfile, 
+	ofstream &myfile_aux){
 	for(size_t i = 0; i < solucion.size(); i++){
-		cout << solucion[i] << "  ";
+		myfile_aux << solucion[i] << "  ";
+		myfile << solucion[i] << "  ";
 		for(int j = 0; j < cant_opciones; j++){
-			cout << opciones_por_clase[solucion[i]][j] << " ";
+			myfile_aux << opciones_por_clase[solucion[i]][j] << " ";
+			myfile << opciones_por_clase[solucion[i]][j] << " ";
 		}
-		cout << endl;	
+		myfile_aux << endl;	
+		myfile << endl;
 	}
-	cout << endl;
+	myfile_aux << endl;
+	myfile << endl;
 }
 
 int existeVacio(vector<vector<int>> dominios){
@@ -197,7 +199,8 @@ int DescartarExcesos(int nivel, int pos, vector<int> &dominio, vector<int> &solu
 }
 
 void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios, int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq,
-		vector<vector<int>> opciones_por_clase, int cant_autos, vector<int> &matriz_conflictos, int &retorno){
+		vector<vector<int>> opciones_por_clase, int cant_autos, vector<int> &matriz_conflictos, 
+		int &retorno, clock_t &begin, ofstream &myfile, ofstream &myfile_aux){
 
 	size_t cont = 0;
 	vector<int> clases_disponibles, autos_por_clase_aux;
@@ -230,7 +233,8 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 				//4.1. Si i < n, incrementar i, e ir al paso (1).
 				if(nivel < cant_autos-1){
 					FC(nivel+1, autos_por_clase_aux, solucion, respaldo, cant_opciones, 
-						tamBloq, maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, retorno);
+						tamBloq, maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, 
+						retorno, begin, myfile, myfile_aux);
 					
 					if(retorno != -1 && retorno != nivel){
 						break;
@@ -242,7 +246,11 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 				}
 				//4.2. Si i = n, salir con la solución.
 				else{
-					imprimirSolucion(solucion, opciones_por_clase, cant_opciones);
+					clock_t end = clock();
+					double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+					cout << "Solución encontrada en " << elapsed_secs << " segs." << endl;
+					myfile_aux << "Solución encontrada en " << elapsed_secs << " segs." << endl;
+					imprimirSolucion(solucion, opciones_por_clase, cant_opciones, myfile, myfile_aux);
 				}
 			}
 
@@ -264,34 +272,4 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 			}
 		}
 	}
-}
-
-
-int main(){
-	/*
-	Variables:
-		-cant_autos: Valor del total de autos.
-		-cant_opciones: Valor del total de opciones.
-		-cant_clases: Valor del total de clases distintas.
-
-	Vectores:
-		-maxCantAutosBloq: Vector que almacena los máximos de autos por bloque, donde el índice es el número de la opción.
-		-tamBloq: Vector que almacena el tamaño del bloque, donde el índice es el número de la opción.
-		-autos_por_clase: Vector que almacena la cantidad de autos de cada clase, donde el índice es el número de la clase.
-		-opciones_por_clase: Vector de 2 dimensiones que almacena las opciones de cada clase, donde el índice es el número de la clase.
-	*/
-
-	int cant_autos, cant_opciones, cant_clases;
-	vector<int> maxCantAutosBloq, tamBloq, autos_por_clase, solucion, matriz_conflictos;
-	vector<vector<int>> opciones_por_clase, dominios;
-
-	int retorno = -1;
-
-	lecturaInput(cant_autos, cant_opciones, cant_clases, maxCantAutosBloq, 
-		tamBloq, autos_por_clase, opciones_por_clase, dominios, solucion, matriz_conflictos);
-
-
-	FC(0, autos_por_clase, solucion, dominios, cant_opciones, tamBloq, 
-		maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, retorno);	
-
 }

@@ -1,3 +1,3 @@
-proyectoia: proyectoIA.cpp
-	@g++ -Wall proyectoIA.cpp -o proyecto
-	@./proyecto < test.txt
+proyectoia: main.cpp funciones.cpp
+	@g++ -Wall main.cpp funciones.cpp -o main
+	@./main
