@@ -91,20 +91,35 @@ void lecturaInput(string path, int &cant_autos, int &cant_opciones, int &cant_cl
     myfile.close();
 }
 
-void imprimirSolucion(vector<int> &solucion, vector<vector<int>> opciones_por_clase, int cant_opciones, ofstream &myfile, 
-	ofstream &myfile_aux){
-	for(size_t i = 0; i < solucion.size(); i++){
-		myfile_aux << solucion[i] << "  ";
-		myfile << solucion[i] << "  ";
-		for(int j = 0; j < cant_opciones; j++){
-			myfile_aux << opciones_por_clase[solucion[i]][j] << " ";
-			myfile << opciones_por_clase[solucion[i]][j] << " ";
-		}
-		myfile_aux << endl;	
-		myfile << endl;
+void imprimirSolucion(int fo, vector<int> &solucion, vector<vector<int>> opciones_por_clase, int cant_opciones, 
+	ofstream &output, string path, clock_t begin){
+	clock_t end = clock();
+	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+
+	if(fo == 0){
+		cout << "¡Solución óptima encontrada en " << elapsed_secs << " segs!" << endl;
+		
+		output.open(path.c_str());
 	}
-	myfile_aux << endl;
-	myfile << endl;
+	else{
+		cout << "Solución parcial encontrada en " << elapsed_secs << " segs." << endl;
+		output.open(path.c_str(), ios::trunc);
+		output << "Solución parcial encontrada a los " << elapsed_secs << " segundos de ejecución." << endl;
+		output << "Cantidad de restricciones de capacidad violadas: " << fo << endl;
+		output << "---------------------------------------------------------------" << endl;
+	}
+	
+	for(size_t i = 0; i < solucion.size(); i++){
+		output << solucion[i] << "  ";
+
+		for(int j = 0; j < cant_opciones; j++){
+			output << opciones_por_clase[solucion[i]][j] << " ";
+		}
+		output << endl;	
+	}
+
+	output << endl;
+	output.close();
 }
 
 int existeVacio(vector<vector<int>> dominios){
@@ -116,8 +131,9 @@ int existeVacio(vector<vector<int>> dominios){
 	return 0;
 }
 
-int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<int> solucion, vector<vector<int>> opciones_por_clase, 
-	int &cant_min_rest_violadas, int cant_autos){
+int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<int> solucion, 
+	vector<vector<int>> opciones_por_clase, int &cant_min_rest_violadas, int cant_autos){
+
 	int clase, cont, cant_rest_violadas;
 	vector<vector<int>> opciones_por_secuencia;
 
@@ -265,11 +281,11 @@ int DescartarExcesos(int nivel, int pos, vector<int> &dominio, vector<int> &solu
 	return 0;
 }
 
-void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios, int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq,
-		vector<vector<int>> opciones_por_clase, int cant_autos, vector<int> &matriz_conflictos, 
-		int &retorno, clock_t &begin, ofstream &myfile, ofstream &myfile_aux, int &cant_min_rest_violadas){
+void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios, 
+		int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<vector<int>> opciones_por_clase, 
+		int cant_autos, vector<int> &matriz_conflictos, int &retorno, clock_t &begin, int &cant_min_rest_violadas, ofstream &output, string path){
+
 	int fo; 
-	size_t cont = 0;
 	vector<int> clases_disponibles, autos_por_clase_aux;
 	vector<vector<int>> respaldo;
 	clases_disponibles = dominios[0];
@@ -279,7 +295,6 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 		autos_por_clase_aux = autos_por_clase;
 		respaldo = dominios;
 		respaldo.erase(respaldo.begin());	
-		cont++;
 
 		//2. Instanciar X_i <- a_i: a_i existe en D_i -- D_i: Dominio de i.
 		if(autos_por_clase_aux[*it] > 0){
@@ -303,7 +318,7 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 				if(nivel < cant_autos-1){
 					FC(nivel+1, autos_por_clase_aux, solucion, respaldo, cant_opciones, 
 						tamBloq, maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, 
-						retorno, begin, myfile, myfile_aux, cant_min_rest_violadas);
+						retorno, begin, cant_min_rest_violadas, output, path);
 					
 					if(retorno != -1 && retorno != nivel){
 						break;
@@ -318,42 +333,7 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 				else{
 					if(excedeMaximo(cant_opciones, tamBloq, maxCantAutosBloq, solucion, opciones_por_clase, cant_min_rest_violadas, cant_autos) != 1){
 						fo = cantRest_violadas(cant_opciones, tamBloq, maxCantAutosBloq, solucion, opciones_por_clase);
-						clock_t end = clock();
-						double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-
-						if(elapsed_secs > 300){
-							//cout << "Última solución encontrada: " << fo << " restricciones infringidas, en " << elapsed_secs << " segs." << endl;
-							//myfile_aux << "-----------------------------------------------------------------" << endl;
-							//myfile_aux << "Solución de " << fo << " restricciones encontrada en " << elapsed_secs << " segs." << endl;
-							//myfile_aux << "-----------------------------------------------------------------" << endl;
-							//imprimirSolucion(solucion, opciones_por_clase, cant_opciones, myfile, myfile_aux);
-
-							myfile_aux << fo << " " << elapsed_secs << endl;
-
-
-							//ERROR INTENCIONAL PARA QUE PARE
-							myfile.close();
-							myfile_aux.close();
-							cout << "Termino intencional" << endl << endl;
-							cout << opciones_por_clase[10000][12];
-						}
-
-						else{
-
-							if(fo == 0){
-								cout << "Solución óptima de 0 restricciones infringidas encontrada." << endl;
-								myfile_aux << "-----------------------------------------------------------------" << endl;
-								myfile_aux << "Solución óptima de 0 restricciones encontrada en " << elapsed_secs << " segs." << endl;
-								myfile_aux << "-----------------------------------------------------------------" << endl;
-								imprimirSolucion(solucion, opciones_por_clase, cant_opciones, myfile, myfile_aux);	
-							}
-
-							else{
-								cout << "Solución de " << fo << " restricciones infringidas encontrada en " << elapsed_secs << " segs." << endl;
-								myfile_aux << fo << endl;
-								myfile << (int) elapsed_secs  <<  endl;
-							}
-						}
+						imprimirSolucion(fo, solucion, opciones_por_clase, cant_opciones, output, path, begin);			
 					}
 				}
 			}
