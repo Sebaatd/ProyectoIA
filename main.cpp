@@ -11,14 +11,14 @@ using namespace std;
 
 int main(int argc, char **argv){
 	ofstream myfile;
-	int cant_autos, cant_opciones, cant_clases, retorno;
+	int cant_autos, cant_opciones, cant_clases, retorno, cant_min_rest_violadas;
 	string input, instancia, path;
 	vector<int> maxCantAutosBloq, tamBloq, autos_por_clase, solucion, matriz_conflictos;
 	vector<vector<int>> opciones_por_clase, dominios;
 	
 	path = "./instancias/";
 
-	cout << "Proyecto Inteligencia Artificial - INF123" << endl;
+	cout << "Proyecto Inteligencia Artificial - INF295" << endl;
 	cout << "Resolución del Car Sequencing Problem mediante FC-GBJ" << endl;
 	cout << endl;
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv){
 
 	cout << "Presione Enter para continuar";
 	cin.ignore();
-	cout << "Buscando soluciones óptimas" << endl;
+	cout << endl << "Buscando soluciones" << endl;
 
 	lecturaInput(path, cant_autos, cant_opciones, cant_clases, maxCantAutosBloq, 
 		tamBloq, autos_por_clase, opciones_por_clase, dominios, solucion, matriz_conflictos);
@@ -66,13 +66,16 @@ int main(int argc, char **argv){
 	//RECORDAR BORRAR LAS LLAMADAS A LAS FUNCIONES TAMBIÉN (myfile_aux)
 
 	retorno = -1;
+	cant_min_rest_violadas = -1;
 	FC(0, autos_por_clase, solucion, dominios, cant_opciones, tamBloq, 
-		maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, retorno, begin, myfile, myfile_aux);	
+		maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, retorno, begin, myfile, myfile_aux, cant_min_rest_violadas);	
 
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 
-	cout << "Programa terminado en " << elapsed_secs << " segs. Todas las soluciones óptimas fueron encontradas" << endl;
+	myfile.close();
+	myfile_aux.close();
+	cout << endl << "Programa terminado en " << elapsed_secs << " segs." << endl;
 
 	/*
 	Variables:

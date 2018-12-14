@@ -116,8 +116,9 @@ int existeVacio(vector<vector<int>> dominios){
 	return 0;
 }
 
-int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<int> solucion, vector<vector<int>> opciones_por_clase){
-	int clase, cont;
+int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<int> solucion, vector<vector<int>> opciones_por_clase, 
+	int &cant_min_rest_violadas, int cant_autos){
+	int clase, cont, cant_rest_violadas;
 	vector<vector<int>> opciones_por_secuencia;
 
 	for(size_t i = 0; i < solucion.size(); i++){
@@ -126,8 +127,11 @@ int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAuto
 	}
 
 	cont = 0;
+	cant_rest_violadas = 0;
+
 	size_t j = 0;
 	int tamano_bloque;
+
 	for(int i = 0; i < cant_opciones; i++){
 		j = 0;
 		tamano_bloque = tamBloq[i];
@@ -141,15 +145,77 @@ int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAuto
 					}
 				}
 				if(cont > maxCantAutosBloq[i]){
-					return 1;
-
+					cant_rest_violadas += 1;
 				}
 			}
 			j++;
 		}
 	}
+
+	if(static_cast<int>(solucion.size()) == cant_autos){
+		if(cant_min_rest_violadas == -1){
+			cant_min_rest_violadas = cant_rest_violadas;
+		}
+		else if(cant_min_rest_violadas >= cant_rest_violadas){
+			cant_min_rest_violadas = cant_rest_violadas;
+		}
+		else{
+			return 1;
+		}
+
+		return 0;
+	}
+
+	else{
+		if(cant_min_rest_violadas != -1 && cant_min_rest_violadas < cant_rest_violadas){
+			return 1;
+		}
+	}
+
+
+
 	return 0;
 }
+
+int cantRest_violadas(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, 
+						vector<int> solucion, vector<vector<int>> opciones_por_clase){
+
+	int clase, cont, cant_rest_violadas, tamano_bloque;
+	size_t j;
+	vector<vector<int>> opciones_por_secuencia;
+
+	for(size_t i = 0; i < solucion.size(); i++){
+		clase = solucion[i];
+		opciones_por_secuencia.push_back(opciones_por_clase[clase]);
+	}
+
+	cont = 0;
+	cant_rest_violadas = 0;
+
+	
+	for(int i = 0; i < cant_opciones; i++){
+		j = 0;
+		tamano_bloque = tamBloq[i];
+		while(j < solucion.size()){
+			cont = 0;
+
+			if(j + tamano_bloque <= solucion.size()){
+				for(int k = 0; k < tamano_bloque; k++){
+					if(opciones_por_secuencia[j+k][i] == 1){
+						cont++;
+					}
+				}
+				if(cont > maxCantAutosBloq[i]){
+					cant_rest_violadas += 1;
+				}
+			}
+			j++;
+		}
+	}
+
+	return cant_rest_violadas;
+}
+
 
 int DescartarDemandas(int nivel, int pos, vector<int> &dominio, vector<int> autos_por_clase, int valor, vector<int> &matriz_conflictos){
 	if(dominio.empty()){
@@ -160,7 +226,7 @@ int DescartarDemandas(int nivel, int pos, vector<int> &dominio, vector<int> auto
 	while(it != dominio.end()){
 		if(*it == valor && autos_por_clase[valor] == 0){
 			it = dominio.erase(it);
-			//matriz_conflictos[nivel+pos] = nivel;
+			matriz_conflictos[nivel+pos] = nivel;
 		}
 
 		else{
@@ -171,7 +237,8 @@ int DescartarDemandas(int nivel, int pos, vector<int> &dominio, vector<int> auto
 }
 
 int DescartarExcesos(int nivel, int pos, vector<int> &dominio, vector<int> &solucion, int cant_opciones, 
-	vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<vector<int>> opciones_por_clase, vector<int> &matriz_conflictos){
+	vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<vector<int>> opciones_por_clase, vector<int> &matriz_conflictos,
+	 int &cant_min_rest_violadas, int cant_autos){
 
 	if(dominio.empty()){
 		return 1;
@@ -186,7 +253,7 @@ int DescartarExcesos(int nivel, int pos, vector<int> &dominio, vector<int> &solu
 	auto it = dominio.begin();
 	while(it != dominio.end()){
 		solucion_temporal.push_back(*it);
-		if(excedeMaximo(cant_opciones, tamBloq, maxCantAutosBloq, solucion_temporal, opciones_por_clase) == 1){
+		if(excedeMaximo(cant_opciones, tamBloq, maxCantAutosBloq, solucion_temporal, opciones_por_clase, cant_min_rest_violadas, cant_autos) == 1){
 			it = dominio.erase(it);
 			matriz_conflictos[nivel+pos] = nivel;
 		}
@@ -200,15 +267,15 @@ int DescartarExcesos(int nivel, int pos, vector<int> &dominio, vector<int> &solu
 
 void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios, int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq,
 		vector<vector<int>> opciones_por_clase, int cant_autos, vector<int> &matriz_conflictos, 
-		int &retorno, clock_t &begin, ofstream &myfile, ofstream &myfile_aux){
-
+		int &retorno, clock_t &begin, ofstream &myfile, ofstream &myfile_aux, int &cant_min_rest_violadas){
+	int fo; 
 	size_t cont = 0;
 	vector<int> clases_disponibles, autos_por_clase_aux;
 	vector<vector<int>> respaldo;
 	clases_disponibles = dominios[0];
 	
 	//1. Seleccionar X_i.
-	for (vector<int>::iterator it = clases_disponibles.begin(); it != clases_disponibles.end(); ++it){
+	for(vector<int>::iterator it = clases_disponibles.begin(); it != clases_disponibles.end(); ++it){
 		autos_por_clase_aux = autos_por_clase;
 		respaldo = dominios;
 		respaldo.erase(respaldo.begin());	
@@ -225,8 +292,10 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 			for(size_t j = 0; j < respaldo.size(); j++){
 				DescartarDemandas(nivel, j+1, respaldo[j], autos_por_clase_aux, *it, matriz_conflictos);				
 			}
+
 			//Eliminar autos que infringen restricción de máximo por bloque de los dominios.
-			DescartarExcesos(nivel, 1, respaldo[0], solucion, cant_opciones, tamBloq, maxCantAutosBloq, opciones_por_clase, matriz_conflictos);
+			DescartarExcesos(nivel, 1, respaldo[0], solucion, cant_opciones, tamBloq, maxCantAutosBloq, 
+				opciones_por_clase, matriz_conflictos, cant_min_rest_violadas, cant_autos);
 
 			//4. Si quedan valores posibles en los dominios de todas las variables por instanciar, entonces:
 			if(existeVacio(respaldo) == 0){
@@ -234,11 +303,12 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 				if(nivel < cant_autos-1){
 					FC(nivel+1, autos_por_clase_aux, solucion, respaldo, cant_opciones, 
 						tamBloq, maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, 
-						retorno, begin, myfile, myfile_aux);
+						retorno, begin, myfile, myfile_aux, cant_min_rest_violadas);
 					
 					if(retorno != -1 && retorno != nivel){
 						break;
 					}
+
 					else if(retorno == nivel){
 						retorno = -1;
 					}
@@ -246,11 +316,40 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 				}
 				//4.2. Si i = n, salir con la solución.
 				else{
-					clock_t end = clock();
-					double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-					cout << "Solución encontrada en " << elapsed_secs << " segs." << endl;
-					myfile_aux << "Solución encontrada en " << elapsed_secs << " segs." << endl;
-					imprimirSolucion(solucion, opciones_por_clase, cant_opciones, myfile, myfile_aux);
+					if(excedeMaximo(cant_opciones, tamBloq, maxCantAutosBloq, solucion, opciones_por_clase, cant_min_rest_violadas, cant_autos) != 1){
+						fo = cantRest_violadas(cant_opciones, tamBloq, maxCantAutosBloq, solucion, opciones_por_clase);
+						clock_t end = clock();
+						double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+
+						if(elapsed_secs > 900){
+							cout << "Última solución encontrada: " << fo << " restricciones infringidas, en " << elapsed_secs << " segs." << endl;
+							myfile_aux << "-----------------------------------------------------------------" << endl;
+							myfile_aux << "Solución de " << fo << " restricciones encontrada en " << elapsed_secs << " segs." << endl;
+							myfile_aux << "-----------------------------------------------------------------" << endl;
+							imprimirSolucion(solucion, opciones_por_clase, cant_opciones, myfile, myfile_aux);
+
+							//ERROR INTENCIONAL PARA QUE PARE
+							myfile.close();
+							myfile_aux.close();
+							cout << "Termino intencional" << endl << endl;
+							cout << opciones_por_clase[10000][12];
+						}
+
+						else{
+
+							if(fo == 0){
+								cout << "Solución óptima de 0 restricciones infringidas encontrada." << endl;
+								myfile_aux << "-----------------------------------------------------------------" << endl;
+								myfile_aux << "Solución óptima de 0 restricciones encontrada en " << elapsed_secs << " segs." << endl;
+								myfile_aux << "-----------------------------------------------------------------" << endl;
+								imprimirSolucion(solucion, opciones_por_clase, cant_opciones, myfile, myfile_aux);	
+							}
+
+							else{
+								cout << "Solución de " << fo << " restricciones infringidas encontrada en " << elapsed_secs << " segs." << endl;
+							}
+						}
+					}
 				}
 			}
 
@@ -258,12 +357,12 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 			else{
 				//Si quedan valores por intentar en el dominio actual, volver al paso (2) (volver a instanciar).
 				//Si no quedan valores:
-				if(cont == clases_disponibles.size()){
+				if(it == clases_disponibles.end()){ //cont == clases_disponibles.size()
 					//Si i = 1, salir sin solución
 					if(nivel == 1){
 						cout << "No existe solución" << endl;
 					}
-					//Fallo
+					//Fallo (GBJ)
 					else{
 						retorno = matriz_conflictos[nivel];
 					}

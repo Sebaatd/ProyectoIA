@@ -18,13 +18,17 @@ void imprimirSolucion(vector<int> &solucion, vector<vector<int>> opciones_por_cl
 int existeVacio(vector<vector<int>> dominios);
 
 int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<int> solucion, 
-	vector<vector<int>> opciones_por_clase);
+	vector<vector<int>> opciones_por_clase, int &cant_min_rest_violadas, int cant_autos);
+
+int cantRest_violadas(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, 
+						vector<int> solucion, vector<vector<int>> opciones_por_clase);
 
 int DescartarDemandas(int nivel, int pos, vector<int> &dominio, vector<int> autos_por_clase, int valor, vector<int> &matriz_conflictos);
 
 int DescartarExcesos(int nivel, int pos, vector<int> &dominio, vector<int> &solucion, int cant_opciones, 
-	vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<vector<int>> opciones_por_clase, vector<int> &matriz_conflictos);
+	vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<vector<int>> opciones_por_clase, vector<int> &matriz_conflictos, 
+	int &cant_min_rest_violadas, int cant_autos);
 
 void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios, int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq,
 		vector<vector<int>> opciones_por_clase, int cant_autos, vector<int> &matriz_conflictos, 
-		int &retorno, clock_t &begin, ofstream &myfile, ofstream &myfile_aux);
+		int &retorno, clock_t &begin, ofstream &myfile, ofstream &myfile_aux, int &cant_min_rest_violadas);
