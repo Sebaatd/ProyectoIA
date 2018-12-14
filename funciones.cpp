@@ -321,12 +321,15 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 						clock_t end = clock();
 						double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 
-						if(elapsed_secs > 900){
-							cout << "Última solución encontrada: " << fo << " restricciones infringidas, en " << elapsed_secs << " segs." << endl;
-							myfile_aux << "-----------------------------------------------------------------" << endl;
-							myfile_aux << "Solución de " << fo << " restricciones encontrada en " << elapsed_secs << " segs." << endl;
-							myfile_aux << "-----------------------------------------------------------------" << endl;
-							imprimirSolucion(solucion, opciones_por_clase, cant_opciones, myfile, myfile_aux);
+						if(elapsed_secs > 300){
+							//cout << "Última solución encontrada: " << fo << " restricciones infringidas, en " << elapsed_secs << " segs." << endl;
+							//myfile_aux << "-----------------------------------------------------------------" << endl;
+							//myfile_aux << "Solución de " << fo << " restricciones encontrada en " << elapsed_secs << " segs." << endl;
+							//myfile_aux << "-----------------------------------------------------------------" << endl;
+							//imprimirSolucion(solucion, opciones_por_clase, cant_opciones, myfile, myfile_aux);
+
+							myfile_aux << fo << " " << elapsed_secs << endl;
+
 
 							//ERROR INTENCIONAL PARA QUE PARE
 							myfile.close();
@@ -347,6 +350,8 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 
 							else{
 								cout << "Solución de " << fo << " restricciones infringidas encontrada en " << elapsed_secs << " segs." << endl;
+								myfile_aux << fo << endl;
+								myfile << (int) elapsed_secs  <<  endl;
 							}
 						}
 					}
