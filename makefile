@@ -1,3 +1,3 @@
 proyectoia: main.cpp funciones.cpp
-	@g++ -Wall main.cpp funciones.cpp -o main
+	@g++ -Wall -std=c++17 main.cpp funciones.cpp -o main
 	@./main

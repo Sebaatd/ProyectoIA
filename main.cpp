@@ -24,12 +24,12 @@ int main(int argc, char **argv){
 	*/
 
 	ofstream output;
-	int cant_autos, cant_opciones, cant_clases, retorno, cant_min_rest_violadas;
+	int cant_autos, cant_opciones, cant_clases, retorno, cant_min_rest_violadas, cant_sol_optimas;
 	string input, instancia, path;
 	vector<int> maxCantAutosBloq, tamBloq, autos_por_clase, solucion, matriz_conflictos;
 	vector<vector<int>> opciones_por_clase, dominios;
 	
-	path = "./instancias/";
+	path = "./Instancias/";
 
 	cout << "Proyecto Inteligencia Artificial - INF295" << endl;
 	cout << "Resolución del Car Sequencing Problem mediante FC-GBJ" << endl;
@@ -40,7 +40,7 @@ int main(int argc, char **argv){
 	getline(cin, input);
 	instancia = input;
 	path += input+".txt";
-
+	cout << path << endl;
 	ifstream f(path.c_str());
 
 	//Archivo no existe. Terminar ejecución.
@@ -71,13 +71,42 @@ int main(int argc, char **argv){
 
 	retorno = -1;
 	cant_min_rest_violadas = -1;
+	cant_sol_optimas = 0;
 
+	//Caso de que haya solo un auto. Revisar si cumple la condición de la única pieza de ensamblaje.
+	if(cant_autos == 1){
+		for(size_t i = 0; i < opciones_por_clase[0].size(); i++){
+			if(opciones_por_clase[0][i] > maxCantAutosBloq[i]){
+				cout << "No existe solución" << endl;
+				return 0;
+			}
+		}
+
+		clock_t end = clock();
+		double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+		output.open(path.c_str(), ios::trunc);
+		cout << "¡Solución óptima encontrada en " << elapsed_secs << " segs!" << endl;
+		output << "¡Solución óptima encontrada en " << elapsed_secs << " segs!" << endl;
+		output << "---------------------------------------------------------------" << endl;		
+		output << dominios[0][0] << "  ";
+		for(size_t j = 0; j < opciones_por_clase[0].size(); j++){
+			output << opciones_por_clase[0][j] << " ";
+		}	
+		return 0;
+	}
+
+	//Caso de que haya mas de un auto. Se realiza FC recursivamente.
 	FC(0, autos_por_clase, solucion, dominios, cant_opciones, tamBloq, 
 		maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, 
-		retorno, begin, cant_min_rest_violadas, output, path);	
+		retorno, begin, cant_min_rest_violadas, output, path, cant_sol_optimas);	
 
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+
+	if(cant_sol_optimas == 0){
+		cout << "No existe solución óptima" << endl;
+		cout << "Se guarda en el archivo la solución con menor cantidad de restricciones violadas" << endl;
+	}
 
 	cout << endl << "Programa terminado en " << elapsed_secs << " segs." << endl;
 }

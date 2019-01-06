@@ -92,17 +92,25 @@ void lecturaInput(string path, int &cant_autos, int &cant_opciones, int &cant_cl
 }
 
 void imprimirSolucion(int fo, vector<int> &solucion, vector<vector<int>> opciones_por_clase, int cant_opciones, 
-	ofstream &output, string path, clock_t begin){
+	ofstream &output, string path, clock_t begin, int &cant_sol_optimas){
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 
 	if(fo == 0){
+		cant_sol_optimas++;
+		if(cant_sol_optimas == 1){
+			output.open(path.c_str(), ios::trunc);
+		}
+		else{
+			output.open(path.c_str(), ios_base::app);
+		}
 		cout << "¡Solución óptima encontrada en " << elapsed_secs << " segs!" << endl;
-		
-		output.open(path.c_str());
+		output << "¡Solución óptima encontrada en " << elapsed_secs << " segs!" << endl;
+		output << "---------------------------------------------------------------" << endl;
 	}
+
 	else{
-		cout << "Solución parcial encontrada en " << elapsed_secs << " segs." << endl;
+		cout << "Solución parcial con " << fo << " infracciones encontrada en " << elapsed_secs << " segs." << endl;
 		output.open(path.c_str(), ios::trunc);
 		output << "Solución parcial encontrada a los " << elapsed_secs << " segundos de ejecución." << endl;
 		output << "Cantidad de restricciones de capacidad violadas: " << fo << endl;
@@ -153,7 +161,6 @@ int excedeMaximo(int cant_opciones, vector<int> tamBloq, vector<int> maxCantAuto
 		tamano_bloque = tamBloq[i];
 		while(j < solucion.size()){
 			cont = 0;
-
 			if(j + tamano_bloque <= solucion.size()){
 				for(int k = 0; k < tamano_bloque; k++){
 					if(opciones_por_secuencia[j+k][i] == 1){
@@ -283,7 +290,8 @@ int DescartarExcesos(int nivel, int pos, vector<int> &dominio, vector<int> &solu
 
 void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<vector<int>> dominios, 
 		int cant_opciones, vector<int> tamBloq, vector<int> maxCantAutosBloq, vector<vector<int>> opciones_por_clase, 
-		int cant_autos, vector<int> &matriz_conflictos, int &retorno, clock_t &begin, int &cant_min_rest_violadas, ofstream &output, string path){
+		int cant_autos, vector<int> &matriz_conflictos, int &retorno, clock_t &begin, int &cant_min_rest_violadas, 
+		ofstream &output, string path, int &cant_sol_optimas){
 
 	int fo; 
 	vector<int> clases_disponibles, autos_por_clase_aux;
@@ -318,7 +326,7 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 				if(nivel < cant_autos-1){
 					FC(nivel+1, autos_por_clase_aux, solucion, respaldo, cant_opciones, 
 						tamBloq, maxCantAutosBloq, opciones_por_clase, cant_autos, matriz_conflictos, 
-						retorno, begin, cant_min_rest_violadas, output, path);
+						retorno, begin, cant_min_rest_violadas, output, path, cant_sol_optimas);
 					
 					if(retorno != -1 && retorno != nivel){
 						break;
@@ -331,9 +339,10 @@ void FC(int nivel, vector<int> autos_por_clase, vector<int> &solucion, vector<ve
 				}
 				//4.2. Si i = n, salir con la solución.
 				else{
-					if(excedeMaximo(cant_opciones, tamBloq, maxCantAutosBloq, solucion, opciones_por_clase, cant_min_rest_violadas, cant_autos) != 1){
+					if(excedeMaximo(cant_opciones, tamBloq, maxCantAutosBloq, solucion, opciones_por_clase, 
+						cant_min_rest_violadas, cant_autos) != 1){
 						fo = cantRest_violadas(cant_opciones, tamBloq, maxCantAutosBloq, solucion, opciones_por_clase);
-						imprimirSolucion(fo, solucion, opciones_por_clase, cant_opciones, output, path, begin);			
+						imprimirSolucion(fo, solucion, opciones_por_clase, cant_opciones, output, path, begin, cant_sol_optimas);			
 					}
 				}
 			}
