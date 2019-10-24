@@ -1,5 +1,5 @@
 # Car Sequencing Problem - Forward Checking+GBJ
-Proyecto de Inteligencia Artificial que busca resolver instancias del Car Sequencing Problem mediante la técnica de búsqueda completa Forward Checking y retornos guiados por GBJ. 
+Proyecto de Inteligencia Artificial (UTFSM-INF295) que busca resolver instancias del Car Sequencing Problem mediante la técnica de búsqueda completa Forward Checking y retornos guiados por GBJ. 
 
 ### Prerequisitos
 El único prerequisito para ejecutar el programa es trabajar en una terminal con compilador g++ instalado.
